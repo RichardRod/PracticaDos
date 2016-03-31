@@ -2,7 +2,12 @@ package sistemaDistribuido.sistema.clienteServidor.modoMonitor;
 
 import sistemaDistribuido.sistema.clienteServidor.modoMonitor.MicroNucleoBase;
 
+import javax.swing.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
 import java.util.Hashtable;
 
 /**
@@ -54,13 +59,29 @@ public final class MicroNucleo extends MicroNucleoBase{
 	 * aqui debes hacer la magia de envio de mensajes por la red como en el chat
 	 */
 	protected void sendVerdadero(int dest,byte[] message){
-
         sendFalso(dest,message);
 		imprimeln("El proceso invocante es el "+super.dameIdProceso());
 
         //lo siguiente aplica para la practica #2
 		ParMaquinaProceso pmp = dameDestinatarioDesdeInterfaz();
 		imprimeln("Enviando mensaje a IP="+pmp.dameIP()+" ID="+pmp.dameID());
+
+        DatagramSocket socket;
+        DatagramPacket packet;
+
+        try
+        {
+            socket = dameSocketEmision();
+            packet = new DatagramPacket(message, message.length, InetAddress.getByName(pmp.dameIP()), damePuertoRecepcion());
+            socket.send(packet);
+
+
+        }//fin de try
+        catch (IOException e)
+        {
+            JOptionPane.showMessageDialog(null, e.toString());
+        }//fin de catch
+
 
         //suspenderProceso();   //esta invocacion depende de si se requiere bloquear al hilo de control invocador
 
@@ -71,7 +92,19 @@ public final class MicroNucleo extends MicroNucleoBase{
 	 */
 	protected void receiveVerdadero(int addr,byte[] message){
 		receiveFalso(addr,message);
-		//el siguiente aplica para la pr�ctica #2
+
+		DatagramSocket recepcion = dameSocketRecepcion();
+		DatagramPacket packet = new DatagramPacket(mensaje, mensaje.length);
+
+		try {
+			recepcion.receive(packet);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		System.out.println("IP Emisora: " + packet.getAddress().getHostAddress());
+		System.out.println(new String(mensaje, 0, packet.getLength()) + "\n");
+
+        //el siguiente aplica para la pr�ctica #2
 		//suspenderProceso();
 	}
 
@@ -99,17 +132,18 @@ public final class MicroNucleo extends MicroNucleoBase{
 	public void run(){
 
 
+
+
+
 		while(seguirEsperandoDatagramas()){
 			/* Lo siguiente es reemplazable en la practica #2,
 			 * sin esto, en practica #1, segun el JRE, puede incrementar el uso de CPU
 			 */
 
-            DatagramSocket recepcion = dameSocketRecepcion();
+            try{
 
-
-			try{
-				sleep(60);
-			}catch(InterruptedException e){
+                sleep(60);
+			}catch(InterruptedException   e){
 				System.out.println("InterruptedException");
 			}
 
