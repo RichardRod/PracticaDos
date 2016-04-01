@@ -135,13 +135,42 @@ public final class MicroNucleo extends MicroNucleoBase{
 		Proceso procesoDestino;
 		DatagramPacket packet = new DatagramPacket(mensaje, mensaje.length);
 
-
-
-
-
-
 		while(seguirEsperandoDatagramas()){
 
+			try
+			{
+				dameSocketRecepcion().receive(packet);
+
+				System.arraycopy(packet.getData(), 0, origen , 0, 4);
+				System.arraycopy(packet.getData(), 4, destino, 0, 4);
+
+				ip = packet.getAddress().getHostAddress();
+
+				tablaEmision.put(new Integer(desempacarInt(origen)), new TransmisionProcesos(ip, desempacarInt(origen)));
+				procesoDestino = dameProcesoLocal(desempacarInt(destino));
+
+				if(procesoDestino == null)
+				{
+					byte[] mensajeError = new byte[2];
+
+					datos = packet.getData();
+					mensajeError = empacar((short)-1);
+					for(int i = 10, j = 0; j < +2; i++, j++){
+						datos[i] = mensajeError[j];
+					}
+
+					send(desempacarInt(origen), datos);
+				}//fin de if
+				else
+				{
+
+				}//fin de else
+
+			}//fin de try
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
 
 
 		}
@@ -202,6 +231,11 @@ public final class MicroNucleo extends MicroNucleoBase{
 
 		return arreglo;
 	}//fin del metodo empacar
+
+	public int desempacarInt(byte[] arregloEmpacado)
+	{
+		return (int)( ((arregloEmpacado[0]&0xFF)<<24) | ((arregloEmpacado[1]&0xFF)<<16) | ((arregloEmpacado[2]&0xFF)<<8) | (arregloEmpacado[3]&0xFF)    );
+	}
 }
 
 class TransmisionProcesos
